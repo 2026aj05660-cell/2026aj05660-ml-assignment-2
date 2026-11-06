@@ -25,6 +25,7 @@ st.set_page_config(
 )
 
 
+# Cached so the JSON isn't re-read on every interaction
 @st.cache_data
 def load_metadata() -> dict:
     if not METADATA_PATH.is_file():
@@ -34,6 +35,7 @@ def load_metadata() -> dict:
     return json.loads(METADATA_PATH.read_text(encoding="utf-8"))
 
 
+# Models are loaded once and reused; nothing here ever calls fit()
 @st.cache_resource
 def load_model(model_path: str):
     path = Path(model_path)
@@ -57,6 +59,7 @@ def main() -> None:
         st.error(str(error))
         st.stop()
 
+    # Sidebar: dataset info, model dropdown and the CSV upload
     with st.sidebar:
         st.header("Experiment setup")
         st.write(f"**Dataset:** {metadata['dataset_name']}")
@@ -70,6 +73,7 @@ def main() -> None:
             "(0 = malignant, 1 = benign)."
         )
 
+    # Nothing uploaded yet: show a preview of the sample test file and stop here
     if uploaded_file is None:
         st.info("Upload a labeled CSV to see model metrics, a confusion matrix, and a report.")
         st.subheader("Included test data")
@@ -87,6 +91,7 @@ def main() -> None:
             st.warning("The test CSV is missing. Run `python train_models.py`.")
         st.stop()
 
+    # Read and check the upload before using it, so bad files give a clear message
     try:
         uploaded_data = pd.read_csv(uploaded_file)
         features, target = validate_test_data(
@@ -100,6 +105,7 @@ def main() -> None:
         st.stop()
 
     st.success(f"Loaded {len(features):,} labeled rows with all required features.")
+    # Evaluate either every model or just the one picked in the dropdown
     selected_names = model_names if selected_model == "All models" else [selected_model]
     results: dict[str, dict[str, float]] = {}
 
@@ -114,6 +120,7 @@ def main() -> None:
         st.error(f"Model evaluation failed: {error}")
         st.stop()
 
+    # Metrics table; the best value in each column is highlighted
     st.subheader("Evaluation metrics")
     result_table = pd.DataFrame.from_dict(results, orient="index")[list(METRIC_COLUMNS)]
     st.dataframe(
@@ -121,6 +128,7 @@ def main() -> None:
         width="stretch",
     )
 
+    # Confusion matrix and report only make sense for a single model
     if selected_model != "All models":
         model = load_model(str(MODEL_DIR / metadata["model_files"][selected_model]))
         predictions = model.predict(features)
@@ -136,7 +144,7 @@ def main() -> None:
             axis.set_title(selected_model)
             figure.tight_layout()
             st.pyplot(figure)
-            plt.close(figure)
+            plt.close(figure)  # free the figure so memory doesn't build up
         with right:
             st.subheader("Classification report")
             report = classification_report(

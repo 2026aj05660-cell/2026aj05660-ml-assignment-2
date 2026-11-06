@@ -16,6 +16,7 @@ from sklearn.metrics import (
 )
 
 
+# Column order used when showing the results table in the app
 METRIC_COLUMNS = (
     "Accuracy",
     "AUC",
@@ -36,6 +37,7 @@ def validate_test_data(
     if data.empty:
         raise ValueError("The uploaded CSV has no rows.")
 
+    # The file must have every training feature plus the target column
     required_columns = [*feature_names, target_column]
     missing_columns = [name for name in required_columns if name not in data.columns]
     if missing_columns:
@@ -43,6 +45,8 @@ def validate_test_data(
             "The CSV is missing required columns: " + ", ".join(missing_columns)
         )
 
+    # Select columns in the same order the models were trained on, and turn
+    # anything non-numeric into NaN so we can catch it below
     features = data.loc[:, feature_names].apply(pd.to_numeric, errors="coerce")
     if features.isna().any().any():
         invalid_columns = features.columns[features.isna().any()].tolist()
@@ -53,6 +57,7 @@ def validate_test_data(
     if not np.isfinite(features.to_numpy(dtype=float)).all():
         raise ValueError("Feature values must all be finite numbers.")
 
+    # Labels must be whole numbers (0 or 1 for this dataset)
     target = pd.to_numeric(data[target_column], errors="coerce")
     if target.isna().any() or not np.equal(target, np.floor(target)).all():
         raise ValueError(f"{target_column!r} must contain integer class labels.")
@@ -81,6 +86,8 @@ def evaluate_classifier(
     if not hasattr(model, "predict_proba"):
         raise ValueError("This model does not provide probabilities required for AUC.")
 
+    # AUC needs the predicted probability of the positive class, so find
+    # which probability column belongs to it
     positive_index = classes.index(positive_label)
     probabilities = model.predict_proba(features)[:, positive_index]
     return {
@@ -95,5 +102,6 @@ def evaluate_classifier(
         "F1": float(
             f1_score(target, predictions, pos_label=positive_label, zero_division=0)
         ),
+        # MCC is symmetric, so it doesn't need a positive label
         "MCC": float(matthews_corrcoef(target, predictions)),
     }
