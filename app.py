@@ -76,7 +76,7 @@ def main() -> None:
         test_path = PROJECT_DIR / "test_data.csv"
         if test_path.is_file():
             sample = pd.read_csv(test_path, nrows=5)
-            st.dataframe(sample, use_container_width=True, hide_index=True)
+            st.dataframe(sample, width="stretch", hide_index=True)
             st.download_button(
                 "Download the included test CSV",
                 data=test_path.read_bytes(),
@@ -118,7 +118,7 @@ def main() -> None:
     result_table = pd.DataFrame.from_dict(results, orient="index")[list(METRIC_COLUMNS)]
     st.dataframe(
         result_table.style.format("{:.4f}").highlight_max(axis=0, color="#d9f2e6"),
-        use_container_width=True,
+        width="stretch",
     )
 
     if selected_model != "All models":
@@ -149,7 +149,7 @@ def main() -> None:
             )
             st.dataframe(
                 pd.DataFrame(report).transpose().round(4),
-                use_container_width=True,
+                width="stretch",
             )
     else:
         st.caption("Select one model to view its confusion matrix and classification report.")
