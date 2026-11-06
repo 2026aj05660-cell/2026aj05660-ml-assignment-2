@@ -52,7 +52,7 @@ Recall, and F1 use class `1` as the positive class.
 
 ## Streamlit Community Cloud
 
-- **Live app:** _Add the deployed Streamlit Community Cloud URL after deployment._
+- **Live app:** https://2026aj05660-ml-assignment-2-8vtwtz8tn5c2y8eiavsf7n.streamlit.app
 - **App entry point:** `app.py`
 
 The app supports uploading a labeled CSV, choosing one or all five models,
